@@ -1,6 +1,7 @@
 import platform
 import psutil
 import os
+import json
 
 a = {
     "Информация о" : "ОС:",  #просто пометки, написаны как элементы словаря
@@ -27,13 +28,13 @@ a = {
         ),  #но сдесь отдельно
     "Загрузка RAM" : (f"{psutil.virtual_memory().percent} %"),   #расписал каждую функцию
     "Используется" : round(psutil.virtual_memory().used / 1024**3, 2),  #можно делать и так и так
-    "Информация о" : "жестком диске:",
-    "Диск" : (
-            f"total: {psutil.disk_usage("/").total // 1024**3} ГБ, " 
-            f"используется: {psutil.disk_usage("/").used // 1024**3} ГБ, " 
-            f"в процентах: {psutil.disk_usage("/").percent}%, "  
-            f"свободно: {psutil.disk_usage("/").free // 1024**3} ГБ",
-            ), #в значение добавил кортеж
+    #"Информация о" : "жестком диске:",
+    #"Диск" : (
+            #f"total: {psutil.disk_usage("/").total // 1024**3} ГБ, " 
+            #f"используется: {psutil.disk_usage("/").used // 1024**3} ГБ, " 
+            #f"в процентах: {psutil.disk_usage("/").percent}%, "  
+            #f"свободно: {psutil.disk_usage("/").free // 1024**3} ГБ",
+            #), #в значение добавил кортеж
     #"Информация о" : "сети",
     #"Сетевой интерфейс" : psutil.net_if_addrs(),
     #"Статистика передачи данных" : psutil.net_io_counters(),
@@ -43,35 +44,33 @@ a = {
     "До разряжения осталось ~" : f"{round(psutil.sensors_battery().secsleft / 60, 2)} минут",
 }
 
-for i, k in a.items():
-    print(i, k)   #Перебираем словарь сверху
 
 for process in psutil.process_iter(): #psutil.process_iter() - выдает нам обьекты процессов
-    print(process.pid, process.name()) #process.pid - смотрим атрибуты (т.е. уже хранящееся знач)
+    a[process.pid] = process.name() #process.pid - смотрим атрибуты (т.е. уже хранящееся знач)
            #process.name() - name это метод, т.е. функция которую нужно вызвать, поэтому она с () в конце, а pid нет
 
 if platform.system() == "Windows":
-     print (
-         "1. Информация о жестком диске:",
-         f"total: {psutil.disk_usage("C:\\").total // 1024**3} ГБ,", 
-         f"используется: {psutil.disk_usage("C:\\").used // 1024**3} ГБ,", 
-         f"в процентах: {psutil.disk_usage("C:\\").percent}%,",  
-         f"свободно: {psutil.disk_usage("C:\\").free // 1024**3} ГБ",
-         "2. Окружение:",
-         os.environ["USERPROFILE"],
-         sep ="\n"
-         ),
+     
+     a["Информация"] = "о жестком диске:"
+     a["total:"] = f"{psutil.disk_usage("C:\\").total // 1024**3} ГБ"
+     a["используется:"] = f"{psutil.disk_usage("C:\\").used // 1024**3} ГБ"
+     a["в процентах:"] = f"{psutil.disk_usage("C:\\").percent}%"
+     a["свободно:"] = f"{psutil.disk_usage("C:\\").free // 1024**3} ГБ"
+     a["Окружение:"] = (os.environ["USERPROFILE"])
+        
 elif platform.system() == "Linux":
      disk = psutil.disk_usage("/")   #еще можно сделать так -> присвоить результат выполнения функции переменной
-     print (
-         "1. Информация о жестком диске:",
-         f"total: {disk.total // 1024**3} ГБ,",  #и тут уже смотреть атрибуты от этой переменной 
-         f"используется: {disk.used // 1024**3} ГБ,", 
-         f"в процентах: {disk.percent}%,",  
-         f"свободно: {disk.free // 1024**3} ГБ",
-         "2. Окружение:",
-         os.environ["HOME"],
-         "Информация о системе:",
-         os.listdir("/proc"),
-         sep ="\n"
-         ), #в значение добавил кортеж
+     a["1. Информация"] = "о жестком диске:",
+     a["total"] = f"{disk.total // 1024**3} ГБ"  #и тут уже смотреть атрибуты от этой переменной 
+     a["используется:"] = f"{disk.used // 1024**3} ГБ" 
+     a["в процентах:"] = f"{disk.percent}%" 
+     a["свободно:"] = f"{disk.free // 1024**3} ГБ"
+     a["Окружение:"] = os.environ["HOME"]
+     a["Информация о системе:"] = os.listdir("/proc")
+ #в значение добавил кортеж
+
+for i, k in a.items():
+    print(i, k)   #Перебираем словарь сверху
+
+with open("system_info.json", "w", encoding="utf-8") as file:
+    json.dump(a, file, ensure_ascii=False, indent=4)
